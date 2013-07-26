@@ -25,6 +25,29 @@ function devel_enable() {
     );
     menu_save($menu);
   }
+
+  // Create a shortcut set, if Shortcut module is enabled.
+  // @see devel_modules_installed()
+  if (module_exists('shortcut') && !variable_get('devel_shortcut_set')) {
+    $shortcut_set = new stdClass();
+    $shortcut_set->title = $t('Development');
+    // Copy links from Devel's menu.
+    // Need to rebuild menu before the links can be accessed.
+    menu_rebuild();
+    foreach (menu_load_links('devel') as $link) {
+      $shortcut_set->links[] = array(
+        'link_path' => $link['link_path'],
+        'link_title' => $link['link_title'],
+        'options' => $link['options'],
+        'weight' => $link['weight'],
+      );
+    }
+    shortcut_set_save($shortcut_set);
+    // Drupal doesn't allow shortcut sets to be named during creation, so the
+    // name of the new shortcut set needs to be tracked for removal.
+    // @see https://drupal.org/node/1175700
+    variable_set('devel_shortcut_set', $shortcut_set->set_name);
+  }
 }
 
 /**
@@ -58,6 +81,15 @@ function devel_uninstall() {
     if ($devel_menu = menu_load('devel')) {
       menu_delete($devel_menu);
     }
+  }
+
+  // Delete the development shortcut set.
+  if (module_exists('shortcut')) {
+    $shortcut_set = shortcut_set_load(variable_get('devel_shortcut_set'));
+    if (!empty($shortcut_set->set_name)) {
+      shortcut_set_delete($shortcut_set);
+    }
+    variable_del('devel_shortcut_set');
   }
 }
 
@@ -121,4 +153,30 @@ function devel_update_7004() {
  */
 function devel_update_7005() {
   variable_del('devel_form_weights');
+}
+
+/**
+ * Add shortcut set for the Development menu.
+ */
+function devel_update_7006() {
+  $t = get_t();
+
+  if (module_exists('shortcut')) {
+    $shortcut_set = new stdClass();
+    $shortcut_set->title = $t('Development');
+    // Copy links from Devel's menu.
+    foreach (menu_load_links('devel') as $link) {
+      $shortcut_set->links[] = array(
+        'link_path' => $link['link_path'],
+        'link_title' => $link['link_title'],
+        'options' => $link['options'],
+        'weight' => $link['weight'],
+      );
+    }
+    shortcut_set_save($shortcut_set);
+    // Drupal doesn't allow shortcut sets to be named during creation, so the
+    // name of the new shortcut set needs to be tracked for removal.
+    // @see https://drupal.org/node/1175700
+    variable_set('devel_shortcut_set', $shortcut_set->set_name);
+  }
 }

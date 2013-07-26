@@ -48,6 +48,22 @@ function devel_modules_installed($modules) {
     );
     menu_save($menu);
   }
+
+  if (in_array('shortcut', $modules) && !variable_get('devel_shortcut_set')) {
+    $shortcut_set = new stdClass();
+    $shortcut_set->title = t('Development');
+    // Copy links from Devel's menu.
+    foreach (menu_load_links('devel') as $link) {
+      $shortcut_set->links[] = array(
+        'link_path' => $link['link_path'],
+        'link_title' => $link['link_title'],
+        'options' => $link['options'],
+        'weight' => $link['weight'],
+      );
+    }
+    shortcut_set_save($shortcut_set);
+    variable_set('devel_shortcut_set', $shortcut_set->set_name);
+  }
 }
 
 /**
